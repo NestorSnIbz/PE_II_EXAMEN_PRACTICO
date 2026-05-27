@@ -846,10 +846,14 @@
     if (!panel || panel.dataset.riInit === "1") return;
     panel.dataset.riInit = "1";
 
-    panel.querySelectorAll("[data-js-edit-oe]").forEach((el) => {
-      el.addEventListener("click", (e) => {
+    panel.addEventListener("click", (e) => {
+      const target = e.target;
+      if (!(target instanceof Element)) return;
+
+      const editOe = target.closest("[data-js-edit-oe]");
+      if (editOe) {
         e.preventDefault();
-        const token = el.getAttribute("data-js-edit-oe");
+        const token = editOe.getAttribute("data-js-edit-oe");
         if (!token) return;
         setActiveProjectPanel("objetivos");
         openObjetivoEstrategicoEdit(token);
@@ -858,23 +862,25 @@
         u.searchParams.set("oe_edit", token);
         u.searchParams.delete("oesp_edit");
         window.history.replaceState({}, "", u.toString());
-      });
-    });
-    panel.querySelectorAll("[data-js-cancel-oe]").forEach((el) => {
-      el.addEventListener("click", (e) => {
+        return;
+      }
+
+      const cancelOe = target.closest("[data-js-cancel-oe]");
+      if (cancelOe) {
         e.preventDefault();
-        const token = el.getAttribute("data-js-cancel-oe");
+        const token = cancelOe.getAttribute("data-js-cancel-oe");
         if (!token) return;
         closeObjetivoEstrategicoEdit(token);
         const u = new URL(window.location.href);
         u.searchParams.delete("oe_edit");
         window.history.replaceState({}, "", u.toString());
-      });
-    });
-    panel.querySelectorAll("[data-js-edit-oesp]").forEach((el) => {
-      el.addEventListener("click", (e) => {
+        return;
+      }
+
+      const editOesp = target.closest("[data-js-edit-oesp]");
+      if (editOesp) {
         e.preventDefault();
-        const token = el.getAttribute("data-js-edit-oesp");
+        const token = editOesp.getAttribute("data-js-edit-oesp");
         if (!token) return;
         setActiveProjectPanel("objetivos");
         openObjetivoEspecificoEdit(token);
@@ -883,18 +889,20 @@
         u.searchParams.set("oesp_edit", token);
         u.searchParams.delete("oe_edit");
         window.history.replaceState({}, "", u.toString());
-      });
-    });
-    panel.querySelectorAll("[data-js-cancel-oesp]").forEach((el) => {
-      el.addEventListener("click", (e) => {
+        return;
+      }
+
+      const cancelOesp = target.closest("[data-js-cancel-oesp]");
+      if (cancelOesp) {
         e.preventDefault();
-        const token = el.getAttribute("data-js-cancel-oesp");
+        const token = cancelOesp.getAttribute("data-js-cancel-oesp");
         if (!token) return;
         closeObjetivoEspecificoEdit(token);
         const u = new URL(window.location.href);
         u.searchParams.delete("oesp_edit");
         window.history.replaceState({}, "", u.toString());
-      });
+        return;
+      }
     });
 
     const url = new URL(window.location.href);
@@ -2609,6 +2617,172 @@
       }
 
       showInlineToast("Guardado", (json && json.message) ? json.message : "Guardado correctamente.");
+      if (action === "create_obj_est") {
+        const created = json && json.created && typeof json.created === "object" ? json.created : null;
+        const panel = document.getElementById("panel-objetivos");
+        const list = panel ? panel.querySelector("[data-oe-list]") : null;
+        if (panel && list && created && created.token && created.descripcion) {
+          const token = String(created.token);
+          const desc = String(created.descripcion);
+          const wrapper = document.createElement("div");
+          wrapper.innerHTML = `
+            <div class="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <div class="flex flex-wrap items-center gap-2">
+                    <div class="text-sm font-semibold text-neutral-900">Objetivo estratégico</div>
+                    <span data-oe-count="${token}" class="inline-flex items-center rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-800">0 específicos</span>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <a
+                    data-js-edit-oe="${token}"
+                    href="detalle-proyecto.php?t=${encodeURIComponent(String(projectToken || ""))}&section=objetivos&oe_edit=${encodeURIComponent(token)}"
+                    class="inline-flex items-center justify-center rounded-xl border border-neutral-200 bg-white p-2 text-brand-700 hover:bg-brand-50"
+                    aria-label="Editar objetivo estratégico"
+                    title="Editar"
+                  >
+                    <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M11 4h-4a2 2 0 00-2 2v4m14-4l-9 9-4 1 1-4 9-9 3 3z" />
+                    </svg>
+                  </a>
+                  <form method="post" action="detalle-proyecto.php" onsubmit="return confirm('¿Eliminar este objetivo estratégico y todos sus objetivos específicos?');">
+                    <input type="hidden" name="action" value="delete_obj_est" />
+                    <input type="hidden" name="t" value="${String(projectToken || "")}" />
+                    <input type="hidden" name="oe" value="${token}" />
+                    <button type="submit" class="inline-flex items-center justify-center rounded-xl bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700">
+                      Eliminar
+                    </button>
+                  </form>
+                </div>
+              </div>
+              <div data-oe-card="${token}">
+                <div data-oe-view class="mt-4 text-sm text-neutral-700 leading-relaxed">${desc.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;").replaceAll("\n", "<br>")}</div>
+                <div data-oe-form class="hidden mt-4">
+                  <form class="space-y-3" method="post" action="detalle-proyecto.php">
+                    <input type="hidden" name="action" value="update_obj_est" />
+                    <input type="hidden" name="t" value="${String(projectToken || "")}" />
+                    <input type="hidden" name="oe" value="${token}" />
+                    <textarea name="descripcion" rows="4" class="w-full rounded-xl border border-neutral-300 px-4 py-3 text-sm outline-none resize-none focus:border-brand-700 focus:ring-2 focus:ring-brand-600/15" required>${desc.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;")}</textarea>
+                    <div class="flex justify-end gap-3">
+                      <a data-js-cancel-oe="${token}" href="detalle-proyecto.php?t=${encodeURIComponent(String(projectToken || ""))}&section=objetivos" class="rounded-xl border border-neutral-300 px-4 py-2 text-sm font-medium hover:bg-neutral-100">Cancelar</a>
+                      <button type="submit" class="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Guardar</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+              <div class="mt-5 rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
+                <div class="flex items-center justify-between gap-3">
+                  <div>
+                    <div class="text-sm font-semibold text-neutral-900">Objetivos específicos</div>
+                    <div class="mt-0.5 text-xs text-neutral-600">Cada objetivo específico pertenece a este objetivo estratégico.</div>
+                  </div>
+                </div>
+                <form class="mt-4 flex flex-col gap-3 sm:flex-row" method="post" action="detalle-proyecto.php">
+                  <input type="hidden" name="action" value="create_obj_esp" />
+                  <input type="hidden" name="t" value="${String(projectToken || "")}" />
+                  <input type="hidden" name="oe" value="${token}" />
+                  <input type="text" name="descripcion" class="flex-1 rounded-xl border border-neutral-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-brand-700 focus:ring-2 focus:ring-brand-600/15" placeholder="Escribe un objetivo específico..." required />
+                  <button type="submit" class="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700">+ Agregar</button>
+                </form>
+                <div data-oesp-empty="${token}" class="block mt-4 text-sm text-neutral-600">Aún no hay objetivos específicos registrados.</div>
+                <div data-oesp-list="${token}" class="hidden mt-4 space-y-2"></div>
+              </div>
+            </div>
+          `.trim();
+          const card = wrapper.firstElementChild;
+          if (card) {
+            list.prepend(card);
+            const empty = list.querySelector(":scope > div.rounded-2xl.border.border-neutral-200.bg-neutral-50");
+            if (empty && empty.textContent && empty.textContent.includes("Aún no hay objetivos")) {
+              empty.remove();
+            }
+          }
+          const textarea = form.querySelector("textarea[name='descripcion']");
+          if (textarea) {
+            textarea.value = "";
+            textarea.focus();
+          }
+          setActiveProjectPanel("objetivos", { updateUrl: false });
+          return;
+        }
+      }
+
+      if (action === "create_obj_esp") {
+        const created = json && json.created && typeof json.created === "object" ? json.created : null;
+        const oeToken = String((created && created.oe_token) ? created.oe_token : (form.querySelector('input[name="oe"]')?.value || ""));
+        const token = created && created.token ? String(created.token) : "";
+        const desc = created && created.descripcion ? String(created.descripcion) : "";
+        const panel = document.getElementById("panel-objetivos");
+        const list = panel && oeToken ? panel.querySelector(`[data-oesp-list="${oeToken}"]`) : null;
+        const empty = panel && oeToken ? panel.querySelector(`[data-oesp-empty="${oeToken}"]`) : null;
+        const countEl = panel && oeToken ? panel.querySelector(`[data-oe-count="${oeToken}"]`) : null;
+        if (panel && list && token && desc) {
+          const rowWrap = document.createElement("div");
+          rowWrap.innerHTML = `
+            <div class="rounded-xl border border-neutral-200 bg-white px-4 py-3">
+              <div data-oesp-row="${token}">
+                <div data-oesp-view class="flex items-start justify-between gap-3">
+                  <div class="text-sm text-neutral-800">${desc.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;")}</div>
+                  <div class="flex items-center gap-2">
+                    <a
+                      data-js-edit-oesp="${token}"
+                      href="detalle-proyecto.php?t=${encodeURIComponent(String(projectToken || ""))}&section=objetivos&oesp_edit=${encodeURIComponent(token)}"
+                      class="inline-flex items-center justify-center rounded-xl border border-neutral-200 bg-white p-2 text-brand-700 hover:bg-brand-50"
+                      aria-label="Editar objetivo específico"
+                      title="Editar"
+                    >
+                      <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M11 4h-4a2 2 0 00-2 2v4m14-4l-9 9-4 1 1-4 9-9 3 3z" />
+                      </svg>
+                    </a>
+                    <form method="post" action="detalle-proyecto.php" onsubmit="return confirm('¿Eliminar este objetivo específico?');">
+                      <input type="hidden" name="action" value="delete_obj_esp" />
+                      <input type="hidden" name="t" value="${String(projectToken || "")}" />
+                      <input type="hidden" name="oe" value="${oeToken}" />
+                      <input type="hidden" name="oesp" value="${token}" />
+                      <button type="submit" class="inline-flex items-center justify-center rounded-xl bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700">Eliminar</button>
+                    </form>
+                  </div>
+                </div>
+                <div data-oesp-form class="hidden">
+                  <form class="flex flex-col gap-3 sm:flex-row sm:items-center" method="post" action="detalle-proyecto.php">
+                    <input type="hidden" name="action" value="update_obj_esp" />
+                    <input type="hidden" name="t" value="${String(projectToken || "")}" />
+                    <input type="hidden" name="oe" value="${oeToken}" />
+                    <input type="hidden" name="oesp" value="${token}" />
+                    <input type="text" name="descripcion" value="${desc.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;")}" class="flex-1 rounded-xl border border-neutral-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-brand-700 focus:ring-2 focus:ring-brand-600/15" required />
+                    <div class="flex justify-end gap-2">
+                      <a data-js-cancel-oesp="${token}" href="detalle-proyecto.php?t=${encodeURIComponent(String(projectToken || ""))}&section=objetivos" class="rounded-xl border border-neutral-300 px-4 py-2 text-sm font-medium hover:bg-neutral-100">Cancelar</a>
+                      <button type="submit" class="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Guardar</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          `.trim();
+          const row = rowWrap.firstElementChild;
+          if (row) {
+            list.prepend(row);
+          }
+          if (empty) empty.classList.add("hidden");
+          list.classList.remove("hidden");
+
+          const current = countEl ? countEl.textContent || "" : "";
+          const m = current.match(/(\d+)/);
+          const n = m ? Number(m[1]) : 0;
+          if (countEl) countEl.textContent = `${n + 1} específicos`;
+
+          const input = form.querySelector('input[name="descripcion"]');
+          if (input) {
+            input.value = "";
+            input.focus();
+          }
+          setActiveProjectPanel("objetivos", { updateUrl: false });
+          return;
+        }
+      }
+
       await reloadPanel(panelId);
       setActiveProjectPanel(panelId, { updateUrl: false });
     } catch (err) {

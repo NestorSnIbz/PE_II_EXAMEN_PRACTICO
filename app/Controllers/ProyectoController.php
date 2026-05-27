@@ -1165,9 +1165,16 @@ final class ProyectoController
             $this->redirect('/proyectos.php');
         }
 
-        ObjetivoEstrategico::create($supabase, $idProyecto, $descripcion);
+        $idObjetivoEst = ObjetivoEstrategico::create($supabase, $idProyecto, $descripcion);
         if ($this->wantsJson()) {
-            $this->jsonOk('Objetivo estratégico registrado correctamente.');
+            $this->jsonOk('Objetivo estratégico registrado correctamente.', [
+                'created' => [
+                    'id_objetivo_est' => (int) $idObjetivoEst,
+                    'token' => $this->issueObjetivoEstrategicoToken((int) $idObjetivoEst),
+                    'descripcion' => $descripcion,
+                    'especificos_count' => 0,
+                ],
+            ]);
         }
         Session::flash('success', 'Objetivo estratégico registrado correctamente.');
         $this->redirect('/detalle-proyecto.php?t=' . urlencode($token) . '&section=objetivos');
@@ -1341,9 +1348,16 @@ final class ProyectoController
             $this->redirect('/detalle-proyecto.php?t=' . urlencode($token) . '&section=objetivos');
         }
 
-        ObjetivoEspecifico::create($supabase, $idObjetivoEst, $descripcion);
+        $idObjetivoEsp = ObjetivoEspecifico::create($supabase, $idObjetivoEst, $descripcion);
         if ($this->wantsJson()) {
-            $this->jsonOk('Objetivo específico registrado correctamente.');
+            $this->jsonOk('Objetivo específico registrado correctamente.', [
+                'created' => [
+                    'id_objetivo_esp' => (int) $idObjetivoEsp,
+                    'token' => $this->issueObjetivoEspecificoToken((int) $idObjetivoEsp),
+                    'descripcion' => $descripcion,
+                    'oe_token' => $oeToken,
+                ],
+            ]);
         }
         Session::flash('success', 'Objetivo específico registrado correctamente.');
         $this->redirect('/detalle-proyecto.php?t=' . urlencode($token) . '&section=objetivos');

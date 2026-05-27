@@ -101,6 +101,45 @@
             </div>
           </section>
 
+          <section class="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <div class="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+              <div class="flex items-center justify-between gap-3">
+                <div>
+                  <h2 class="text-sm font-semibold text-neutral-900">Estado de planes</h2>
+                  <div class="mt-0.5 text-xs text-neutral-500">Activos vs. restantes.</div>
+                </div>
+                <div class="text-xs text-neutral-500">Resumen</div>
+              </div>
+              <div class="mt-4">
+                <div class="flex items-center justify-between text-xs text-neutral-600">
+                  <span>Activos</span>
+                  <span id="chart-status-active-label"></span>
+                </div>
+                <div class="mt-2 h-3 w-full overflow-hidden rounded-full bg-neutral-100">
+                  <div id="chart-status-active-bar" class="h-full bg-emerald-500" style="width:0%"></div>
+                </div>
+                <div class="mt-3 flex items-center justify-between text-xs text-neutral-600">
+                  <span>En progreso / Borrador</span>
+                  <span id="chart-status-rest-label"></span>
+                </div>
+                <div class="mt-2 h-3 w-full overflow-hidden rounded-full bg-neutral-100">
+                  <div id="chart-status-rest-bar" class="h-full bg-amber-500" style="width:0%"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+              <div class="flex items-center justify-between gap-3">
+                <div>
+                  <h2 class="text-sm font-semibold text-neutral-900">Top objetivos por plan</h2>
+                  <div class="mt-0.5 text-xs text-neutral-500">Comparación entre objetivos estratégicos y específicos.</div>
+                </div>
+                <div class="text-xs text-neutral-500">Top 6</div>
+              </div>
+              <div id="chart-top-objetivos" class="mt-4 space-y-3"></div>
+            </div>
+          </section>
+
           <section class="mt-6 rounded-2xl border border-neutral-200 bg-white shadow-sm">
             <div class="px-6 py-4 border-b border-neutral-200 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div class="flex items-center justify-between gap-3">
@@ -168,6 +207,102 @@
         setText(metricEls.usuariosActivos, String(m.usuarios_activos ?? 0));
 
         setText(updatedLabel, formatUpdatedAt(payload.updated_at || ""));
+      }
+
+      function renderCharts(payload) {
+        const m = payload && payload.metrics && typeof payload.metrics === "object" ? payload.metrics : {};
+        const total = Number(m.total_rutas ?? 0);
+        const active = Number(m.rutas_activas ?? 0);
+        const rest = Math.max(0, total - active);
+
+        const activePct = total > 0 ? Math.round((active / total) * 100) : 0;
+        const restPct = total > 0 ? Math.round((rest / total) * 100) : 0;
+
+        const activeBar = document.getElementById("chart-status-active-bar");
+        const restBar = document.getElementById("chart-status-rest-bar");
+        const activeLabel = document.getElementById("chart-status-active-label");
+        const restLabel = document.getElementById("chart-status-rest-label");
+        if (activeBar) activeBar.style.width = `${activePct}%`;
+        if (restBar) restBar.style.width = `${restPct}%`;
+        setText(activeLabel, `${active} (${activePct}%)`);
+        setText(restLabel, `${rest} (${restPct}%)`);
+
+        const chartWrap = document.getElementById("chart-top-objetivos");
+        if (!chartWrap) return;
+        chartWrap.innerHTML = "";
+
+        const chart = payload && payload.chart && typeof payload.chart === "object" ? payload.chart : {};
+        const labels = Array.isArray(chart.labels) ? chart.labels : [];
+        const series = Array.isArray(chart.series) ? chart.series : [];
+
+        let max = 1;
+        for (const s of series) {
+          const oe = Number(s && s.obj_est !== undefined ? s.obj_est : 0);
+          const oesp = Number(s && s.obj_esp !== undefined ? s.obj_esp : 0);
+          max = Math.max(max, oe + oesp, oe, oesp);
+        }
+
+        for (let i = 0; i < Math.min(labels.length, series.length); i++) {
+          const name = String(labels[i] ?? "—");
+          const s = series[i] && typeof series[i] === "object" ? series[i] : {};
+          const oe = Number(s.obj_est ?? 0);
+          const oesp = Number(s.obj_esp ?? 0);
+
+          const row = document.createElement("div");
+          row.className = "rounded-xl border border-neutral-200 bg-neutral-50 p-3";
+
+          const header = document.createElement("div");
+          header.className = "flex items-center justify-between gap-3";
+
+          const title = document.createElement("div");
+          title.className = "min-w-0 text-sm font-semibold text-neutral-900 truncate";
+          title.textContent = name;
+
+          const meta = document.createElement("div");
+          meta.className = "shrink-0 text-xs font-semibold text-neutral-600";
+          meta.textContent = `${oe} OE · ${oesp} OEsp`;
+
+          header.appendChild(title);
+          header.appendChild(meta);
+
+          const bars = document.createElement("div");
+          bars.className = "mt-2 space-y-2";
+
+          const oeWrap = document.createElement("div");
+          oeWrap.className = "flex items-center gap-2";
+          const oeLabel = document.createElement("div");
+          oeLabel.className = "w-14 text-[11px] font-semibold text-neutral-600";
+          oeLabel.textContent = "OE";
+          const oeBarBg = document.createElement("div");
+          oeBarBg.className = "h-2 flex-1 overflow-hidden rounded-full bg-white border border-neutral-200";
+          const oeBar = document.createElement("div");
+          oeBar.className = "h-full bg-brand-600";
+          oeBar.style.width = `${Math.round((oe / max) * 100)}%`;
+          oeBarBg.appendChild(oeBar);
+          oeWrap.appendChild(oeLabel);
+          oeWrap.appendChild(oeBarBg);
+
+          const oespWrap = document.createElement("div");
+          oespWrap.className = "flex items-center gap-2";
+          const oespLabel = document.createElement("div");
+          oespLabel.className = "w-14 text-[11px] font-semibold text-neutral-600";
+          oespLabel.textContent = "OEsp";
+          const oespBarBg = document.createElement("div");
+          oespBarBg.className = "h-2 flex-1 overflow-hidden rounded-full bg-white border border-neutral-200";
+          const oespBar = document.createElement("div");
+          oespBar.className = "h-full bg-emerald-600";
+          oespBar.style.width = `${Math.round((oesp / max) * 100)}%`;
+          oespBarBg.appendChild(oespBar);
+          oespWrap.appendChild(oespLabel);
+          oespWrap.appendChild(oespBarBg);
+
+          bars.appendChild(oeWrap);
+          bars.appendChild(oespWrap);
+
+          row.appendChild(header);
+          row.appendChild(bars);
+          chartWrap.appendChild(row);
+        }
       }
 
       function buildRow(project) {
@@ -266,11 +401,13 @@
           const json = await res.json();
           if (!json || typeof json !== "object" || !json.payload) return;
           currentPayload = json.payload;
+          renderCharts(currentPayload);
           renderMetrics(currentPayload);
           renderTable(currentPayload);
         } catch (e) {}
       }
 
+      renderCharts(currentPayload);
       renderMetrics(currentPayload);
       renderTable(currentPayload);
 

@@ -282,7 +282,7 @@
       </div>
     </form>
 
-    <div class="mt-6 grid gap-4 sm:grid-cols-2">
+    <div class="mt-6 grid gap-4" data-oe-list="1">
       <?php if (empty($objetivosEstrategicos)) : ?>
         <div class="rounded-2xl border border-neutral-200 bg-neutral-50 px-5 py-4 text-sm text-neutral-700 sm:col-span-2">
           Aún no hay objetivos estratégicos registrados.
@@ -300,7 +300,7 @@
               <div>
                 <div class="flex flex-wrap items-center gap-2">
                   <div class="text-sm font-semibold text-neutral-900">Objetivo estratégico</div>
-                  <span class="inline-flex items-center rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-800">
+                  <span data-oe-count="<?php echo htmlspecialchars($oeToken, ENT_QUOTES, 'UTF-8'); ?>" class="inline-flex items-center rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-800">
                     <?php echo (int) $especificosCount; ?> específicos
                   </span>
                 </div>
@@ -385,74 +385,73 @@
                 </button>
               </form>
 
-              <?php if (empty($especificos)) : ?>
-                <div class="mt-4 text-sm text-neutral-600">Aún no hay objetivos específicos registrados.</div>
-              <?php else : ?>
-                <div class="mt-4 space-y-2">
-                  <?php foreach ($especificos as $esp) : ?>
-                    <?php $oespToken = (string) ($esp['token'] ?? ''); ?>
-                    <div class="rounded-xl border border-neutral-200 bg-white px-4 py-3">
-                      <div data-oesp-row="<?php echo htmlspecialchars($oespToken, ENT_QUOTES, 'UTF-8'); ?>">
-                        <div data-oesp-view class="<?php echo (($oespEditToken ?? '') !== '' && hash_equals((string) ($oespEditToken ?? ''), $oespToken)) ? 'hidden' : 'flex'; ?> items-start justify-between gap-3">
-                          <div class="text-sm text-neutral-800">
-                            <?php echo htmlspecialchars((string) ($esp['descripcion'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>
-                          </div>
-                          <div class="flex items-center gap-2">
-                            <a
-                              data-js-edit-oesp="<?php echo htmlspecialchars($oespToken, ENT_QUOTES, 'UTF-8'); ?>"
-                              href="detalle-proyecto.php?t=<?php echo urlencode((string) $projectToken); ?>&section=objetivos&oesp_edit=<?php echo urlencode($oespToken); ?>"
-                              class="inline-flex items-center justify-center rounded-xl border border-neutral-200 bg-white p-2 text-brand-700 hover:bg-brand-50"
-                              aria-label="Editar objetivo específico"
-                              title="Editar"
-                            >
-                              <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M11 4h-4a2 2 0 00-2 2v4m14-4l-9 9-4 1 1-4 9-9 3 3z" />
-                              </svg>
-                            </a>
-                            <form method="post" action="detalle-proyecto.php" onsubmit="return confirm('¿Eliminar este objetivo específico?');">
-                              <input type="hidden" name="action" value="delete_obj_esp" />
-                              <input type="hidden" name="t" value="<?php echo htmlspecialchars((string) $projectToken, ENT_QUOTES, 'UTF-8'); ?>" />
-                              <input type="hidden" name="oe" value="<?php echo htmlspecialchars($oeToken, ENT_QUOTES, 'UTF-8'); ?>" />
-                              <input type="hidden" name="oesp" value="<?php echo htmlspecialchars($oespToken, ENT_QUOTES, 'UTF-8'); ?>" />
-                              <button type="submit" class="inline-flex items-center justify-center rounded-xl bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700">
-                                Eliminar
-                              </button>
-                            </form>
-                          </div>
+              <div data-oesp-empty="<?php echo htmlspecialchars($oeToken, ENT_QUOTES, 'UTF-8'); ?>" class="<?php echo empty($especificos) ? 'block' : 'hidden'; ?> mt-4 text-sm text-neutral-600">
+                Aún no hay objetivos específicos registrados.
+              </div>
+              <div data-oesp-list="<?php echo htmlspecialchars($oeToken, ENT_QUOTES, 'UTF-8'); ?>" class="<?php echo empty($especificos) ? 'hidden' : 'block'; ?> mt-4 space-y-2">
+                <?php foreach ($especificos as $esp) : ?>
+                  <?php $oespToken = (string) ($esp['token'] ?? ''); ?>
+                  <div class="rounded-xl border border-neutral-200 bg-white px-4 py-3">
+                    <div data-oesp-row="<?php echo htmlspecialchars($oespToken, ENT_QUOTES, 'UTF-8'); ?>">
+                      <div data-oesp-view class="<?php echo (($oespEditToken ?? '') !== '' && hash_equals((string) ($oespEditToken ?? ''), $oespToken)) ? 'hidden' : 'flex'; ?> items-start justify-between gap-3">
+                        <div class="text-sm text-neutral-800">
+                          <?php echo htmlspecialchars((string) ($esp['descripcion'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>
                         </div>
-
-                        <div data-oesp-form class="<?php echo (($oespEditToken ?? '') !== '' && hash_equals((string) ($oespEditToken ?? ''), $oespToken)) ? 'block' : 'hidden'; ?>">
-                          <form class="flex flex-col gap-3 sm:flex-row sm:items-center" method="post" action="detalle-proyecto.php">
-                            <input type="hidden" name="action" value="update_obj_esp" />
+                        <div class="flex items-center gap-2">
+                          <a
+                            data-js-edit-oesp="<?php echo htmlspecialchars($oespToken, ENT_QUOTES, 'UTF-8'); ?>"
+                            href="detalle-proyecto.php?t=<?php echo urlencode((string) $projectToken); ?>&section=objetivos&oesp_edit=<?php echo urlencode($oespToken); ?>"
+                            class="inline-flex items-center justify-center rounded-xl border border-neutral-200 bg-white p-2 text-brand-700 hover:bg-brand-50"
+                            aria-label="Editar objetivo específico"
+                            title="Editar"
+                          >
+                            <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M11 4h-4a2 2 0 00-2 2v4m14-4l-9 9-4 1 1-4 9-9 3 3z" />
+                            </svg>
+                          </a>
+                          <form method="post" action="detalle-proyecto.php" onsubmit="return confirm('¿Eliminar este objetivo específico?');">
+                            <input type="hidden" name="action" value="delete_obj_esp" />
                             <input type="hidden" name="t" value="<?php echo htmlspecialchars((string) $projectToken, ENT_QUOTES, 'UTF-8'); ?>" />
                             <input type="hidden" name="oe" value="<?php echo htmlspecialchars($oeToken, ENT_QUOTES, 'UTF-8'); ?>" />
                             <input type="hidden" name="oesp" value="<?php echo htmlspecialchars($oespToken, ENT_QUOTES, 'UTF-8'); ?>" />
-                            <input
-                              type="text"
-                              name="descripcion"
-                              value="<?php echo htmlspecialchars((string) ($esp['descripcion'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
-                              class="flex-1 rounded-xl border border-neutral-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-brand-700 focus:ring-2 focus:ring-brand-600/15"
-                              required
-                            />
-                            <div class="flex justify-end gap-2">
-                              <a
-                                data-js-cancel-oesp="<?php echo htmlspecialchars($oespToken, ENT_QUOTES, 'UTF-8'); ?>"
-                                href="detalle-proyecto.php?t=<?php echo urlencode((string) $projectToken); ?>&section=objetivos"
-                                class="rounded-xl border border-neutral-300 px-4 py-2 text-sm font-medium hover:bg-neutral-100"
-                              >
-                                Cancelar
-                              </a>
-                              <button type="submit" class="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">
-                                Guardar
-                              </button>
-                            </div>
+                            <button type="submit" class="inline-flex items-center justify-center rounded-xl bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700">
+                              Eliminar
+                            </button>
                           </form>
                         </div>
                       </div>
+
+                      <div data-oesp-form class="<?php echo (($oespEditToken ?? '') !== '' && hash_equals((string) ($oespEditToken ?? ''), $oespToken)) ? 'block' : 'hidden'; ?>">
+                        <form class="flex flex-col gap-3 sm:flex-row sm:items-center" method="post" action="detalle-proyecto.php">
+                          <input type="hidden" name="action" value="update_obj_esp" />
+                          <input type="hidden" name="t" value="<?php echo htmlspecialchars((string) $projectToken, ENT_QUOTES, 'UTF-8'); ?>" />
+                          <input type="hidden" name="oe" value="<?php echo htmlspecialchars($oeToken, ENT_QUOTES, 'UTF-8'); ?>" />
+                          <input type="hidden" name="oesp" value="<?php echo htmlspecialchars($oespToken, ENT_QUOTES, 'UTF-8'); ?>" />
+                          <input
+                            type="text"
+                            name="descripcion"
+                            value="<?php echo htmlspecialchars((string) ($esp['descripcion'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+                            class="flex-1 rounded-xl border border-neutral-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-brand-700 focus:ring-2 focus:ring-brand-600/15"
+                            required
+                          />
+                          <div class="flex justify-end gap-2">
+                            <a
+                              data-js-cancel-oesp="<?php echo htmlspecialchars($oespToken, ENT_QUOTES, 'UTF-8'); ?>"
+                              href="detalle-proyecto.php?t=<?php echo urlencode((string) $projectToken); ?>&section=objetivos"
+                              class="rounded-xl border border-neutral-300 px-4 py-2 text-sm font-medium hover:bg-neutral-100"
+                            >
+                              Cancelar
+                            </a>
+                            <button type="submit" class="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">
+                              Guardar
+                            </button>
+                          </div>
+                        </form>
+                      </div>
                     </div>
-                  <?php endforeach; ?>
-                </div>
-              <?php endif; ?>
+                  </div>
+                <?php endforeach; ?>
+              </div>
             </div>
           </div>
         <?php endforeach; ?>
