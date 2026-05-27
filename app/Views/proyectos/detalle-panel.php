@@ -1114,6 +1114,82 @@
           </div>
         <?php endif; ?>
       </div>
+
+      <div class="rounded-2xl border border-neutral-200 bg-neutral-50 p-5">
+        <div class="text-sm font-semibold text-neutral-900">Objetivos</div>
+        <div class="mt-1 flex flex-wrap items-start justify-between gap-3">
+          <div class="text-sm text-neutral-600">Objetivos estratégicos y sus objetivos específicos.</div>
+          <button
+            type="button"
+            data-open-panel="objetivos"
+            class="inline-flex h-10 items-center justify-center rounded-xl border border-neutral-200 bg-white px-4 text-sm font-semibold text-neutral-700 shadow-sm hover:bg-neutral-50"
+          >
+            Gestionar
+          </button>
+        </div>
+
+        <?php if (($objetivosError ?? '') !== '') : ?>
+          <div class="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            <?php echo htmlspecialchars((string) $objetivosError, ENT_QUOTES, 'UTF-8'); ?>
+          </div>
+        <?php endif; ?>
+
+        <?php if (empty($objetivosEstrategicos)) : ?>
+          <div class="mt-3 text-sm text-neutral-600">Aún no hay objetivos registrados.</div>
+        <?php else : ?>
+          <div class="mt-4 overflow-x-auto rounded-xl border border-neutral-200 bg-white">
+            <table class="min-w-full text-left text-sm">
+              <thead class="bg-neutral-50 text-xs font-semibold text-neutral-600">
+                <tr>
+                  <th scope="col" class="w-14 px-4 py-3 text-center">#</th>
+                  <th scope="col" class="px-4 py-3">Objetivo estratégico</th>
+                  <th scope="col" class="px-4 py-3">Objetivos específicos</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-neutral-200">
+                <?php foreach ($objetivosEstrategicos as $i => $obj) : ?>
+                  <?php
+                    $idObjEst = (int) ($obj['id_objetivo_est'] ?? 0);
+                    $especificos = $objetivosEspecificosByEstrategico[$idObjEst] ?? [];
+                  ?>
+                  <tr class="align-top">
+                    <td class="px-4 py-3 text-center text-neutral-500"><?php echo (int) $i + 1; ?></td>
+                    <td class="px-4 py-3 text-neutral-800 leading-relaxed">
+                      <?php echo nl2br(htmlspecialchars((string) ($obj['descripcion'] ?? ''), ENT_QUOTES, 'UTF-8')); ?>
+                    </td>
+                    <td class="px-4 py-3">
+                      <?php if (empty($especificos)) : ?>
+                        <div class="text-sm text-neutral-500">Sin objetivos específicos</div>
+                      <?php else : ?>
+                        <div class="overflow-hidden rounded-lg border border-neutral-200">
+                          <table class="min-w-full text-left text-sm">
+                            <thead class="bg-neutral-50 text-xs font-semibold text-neutral-600">
+                              <tr>
+                                <th scope="col" class="w-12 px-3 py-2 text-center">#</th>
+                                <th scope="col" class="px-3 py-2">Descripción</th>
+                              </tr>
+                            </thead>
+                            <tbody class="divide-y divide-neutral-200">
+                              <?php foreach ($especificos as $j => $esp) : ?>
+                                <tr>
+                                  <td class="px-3 py-2 text-center text-neutral-500"><?php echo (int) $j + 1; ?></td>
+                                  <td class="px-3 py-2 text-neutral-800">
+                                    <?php echo htmlspecialchars((string) ($esp['descripcion'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>
+                                  </td>
+                                </tr>
+                              <?php endforeach; ?>
+                            </tbody>
+                          </table>
+                        </div>
+                      <?php endif; ?>
+                    </td>
+                  </tr>
+                <?php endforeach; ?>
+              </tbody>
+            </table>
+          </div>
+        <?php endif; ?>
+      </div>
     </div>
   </section>
 <?php endif; ?>

@@ -317,7 +317,7 @@ final class ProyectoController
         $bcgFortalezas = [];
         $bcgDebilidades = [];
 
-        if ($renderOnlySection === 'objetivos') {
+        if ($renderOnlySection === '' || $renderOnlySection === 'overview' || $renderOnlySection === 'objetivos') {
             try {
                 $objetivosEstrategicos = ObjetivoEstrategico::listByProyecto($supabase, $idProyecto);
                 $objetivosEstrategicos = $this->attachObjetivoEstrategicoTokens($objetivosEstrategicos);
