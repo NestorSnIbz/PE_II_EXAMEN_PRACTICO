@@ -846,9 +846,374 @@
     if (!panel || panel.dataset.riInit === "1") return;
     panel.dataset.riInit = "1";
 
+    const pendingOe = [];
+    const pendingOespByOe = new Map();
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function renderPendingOe() {
+      const countEl = panel.querySelector("[data-oe-batch-count]");
+      const emptyEl = panel.querySelector("[data-oe-batch-empty]");
+      const listEl = panel.querySelector("[data-oe-batch-list]");
+      const saveBtn = panel.querySelector("[data-oe-batch-save]");
+      if (countEl) countEl.textContent = String(pendingOe.length);
+      if (saveBtn) saveBtn.disabled = pendingOe.length === 0;
+      if (!emptyEl || !listEl) return;
+      if (pendingOe.length === 0) {
+        emptyEl.classList.remove("hidden");
+        listEl.classList.add("hidden");
+        listEl.innerHTML = "";
+        return;
+      }
+      emptyEl.classList.add("hidden");
+      listEl.classList.remove("hidden");
+      listEl.innerHTML = pendingOe
+        .map((txt, idx) => {
+          const t = escapeHtml(txt);
+          return `
+            <div class="flex items-start justify-between gap-3 rounded-xl border border-neutral-200 bg-white px-4 py-3">
+              <div class="min-w-0 flex-1 text-sm text-neutral-800 leading-relaxed">${t}</div>
+              <button type="button" data-oe-batch-remove="${idx}" class="shrink-0 inline-flex items-center justify-center rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700">
+                Quitar
+              </button>
+            </div>
+          `.trim();
+        })
+        .join("");
+    }
+
+    function renderPendingOesp(oeToken) {
+      const list = pendingOespByOe.get(oeToken) || [];
+      const countEl = panel.querySelector(`[data-oesp-batch-count="${oeToken}"]`);
+      const emptyEl = panel.querySelector(`[data-oesp-batch-empty="${oeToken}"]`);
+      const listEl = panel.querySelector(`[data-oesp-batch-list="${oeToken}"]`);
+      const saveBtn = panel.querySelector(`[data-oesp-batch-save="${oeToken}"]`);
+      if (countEl) countEl.textContent = String(list.length);
+      if (saveBtn) saveBtn.disabled = list.length === 0;
+      if (!emptyEl || !listEl) return;
+      if (list.length === 0) {
+        emptyEl.classList.remove("hidden");
+        listEl.classList.add("hidden");
+        listEl.innerHTML = "";
+        return;
+      }
+      emptyEl.classList.add("hidden");
+      listEl.classList.remove("hidden");
+      listEl.innerHTML = list
+        .map((txt, idx) => {
+          const t = escapeHtml(txt);
+          return `
+            <div class="flex items-start justify-between gap-3 rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2">
+              <div class="min-w-0 flex-1 text-sm text-neutral-800 leading-relaxed">${t}</div>
+              <button type="button" data-oesp-batch-remove="${oeToken}:${idx}" class="shrink-0 inline-flex items-center justify-center rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700">
+                Quitar
+              </button>
+            </div>
+          `.trim();
+        })
+        .join("");
+    }
+
     panel.addEventListener("click", (e) => {
       const target = e.target;
       if (!(target instanceof Element)) return;
+
+      const oeAdd = target.closest("[data-oe-batch-add]");
+      if (oeAdd) {
+        e.preventDefault();
+        const form = panel.querySelector("[data-oe-batch-form]");
+        const textarea = form ? form.querySelector('textarea[name="descripcion"]') : null;
+        const txt = String(textarea && textarea.value ? textarea.value : "").trim();
+        if (txt.length < 5) {
+          showInlineToast("Error", "El objetivo estratégico debe tener al menos 5 caracteres.");
+          return;
+        }
+        pendingOe.push(txt);
+        if (textarea) {
+          textarea.value = "";
+          textarea.focus();
+        }
+        renderPendingOe();
+        return;
+      }
+
+      const oeRemove = target.closest("[data-oe-batch-remove]");
+      if (oeRemove) {
+        e.preventDefault();
+        const idx = Number(oeRemove.getAttribute("data-oe-batch-remove") || "-1");
+        if (!Number.isFinite(idx) || idx < 0 || idx >= pendingOe.length) return;
+        pendingOe.splice(idx, 1);
+        renderPendingOe();
+        return;
+      }
+
+      const oeSave = target.closest("[data-oe-batch-save]");
+      if (oeSave) {
+        e.preventDefault();
+        const form = panel.querySelector("[data-oe-batch-form]");
+        const tokenEl = form ? form.querySelector('input[name="t"]') : null;
+        const token = String(tokenEl && tokenEl.value ? tokenEl.value : "");
+        if (!token) {
+          showInlineToast("Error", "Proyecto inválido.");
+          return;
+        }
+        const items = pendingOe.slice();
+        if (items.length === 0) return;
+        oeSave.disabled = true;
+        oeSave.textContent = "Guardando…";
+        (async () => {
+          try {
+            const fd = new FormData();
+            fd.set("action", "create_obj_est_batch");
+            fd.set("t", token);
+            fd.set("items", JSON.stringify(items));
+            const res = await fetch("detalle-proyecto.php", {
+              method: "POST",
+              headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" },
+              body: fd,
+            });
+            const json = await res.json().catch(() => null);
+            if (!res.ok || !json || json.ok !== true) {
+              const msg = (json && json.error) ? String(json.error) : "No se pudo guardar.";
+              showInlineToast("Error", msg);
+              return;
+            }
+            const created = Array.isArray(json.created) ? json.created : [];
+            const list = panel.querySelector("[data-oe-list]");
+            for (const c of created) {
+              if (!c || typeof c !== "object" || !c.token || !c.descripcion) continue;
+              const t = String(c.token);
+              const d = String(c.descripcion);
+              const wrapper = document.createElement("div");
+              wrapper.innerHTML = `
+                <div class="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+                  <div class="flex items-start justify-between gap-3">
+                    <div>
+                      <div class="flex flex-wrap items-center gap-2">
+                        <div class="text-sm font-semibold text-neutral-900">Objetivo estratégico</div>
+                        <span data-oe-count="${escapeHtml(t)}" class="inline-flex items-center rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-800">0 específicos</span>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <a data-js-edit-oe="${escapeHtml(t)}" href="detalle-proyecto.php?t=${encodeURIComponent(String(projectToken || ""))}&section=objetivos&oe_edit=${encodeURIComponent(t)}" class="inline-flex items-center justify-center rounded-xl border border-neutral-200 bg-white p-2 text-brand-700 hover:bg-brand-50" aria-label="Editar objetivo estratégico" title="Editar">
+                        <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M11 4h-4a2 2 0 00-2 2v4m14-4l-9 9-4 1 1-4 9-9 3 3z" />
+                        </svg>
+                      </a>
+                      <form method="post" action="detalle-proyecto.php" onsubmit="return confirm('¿Eliminar este objetivo estratégico y todos sus objetivos específicos?');">
+                        <input type="hidden" name="action" value="delete_obj_est" />
+                        <input type="hidden" name="t" value="${escapeHtml(String(projectToken || ""))}" />
+                        <input type="hidden" name="oe" value="${escapeHtml(t)}" />
+                        <button type="submit" class="inline-flex items-center justify-center rounded-xl bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700">Eliminar</button>
+                      </form>
+                    </div>
+                  </div>
+                  <div data-oe-card="${escapeHtml(t)}">
+                    <div data-oe-view class="mt-4 text-sm text-neutral-700 leading-relaxed">${escapeHtml(d).replaceAll("\n", "<br>")}</div>
+                    <div data-oe-form class="hidden mt-4">
+                      <form class="space-y-3" method="post" action="detalle-proyecto.php">
+                        <input type="hidden" name="action" value="update_obj_est" />
+                        <input type="hidden" name="t" value="${escapeHtml(String(projectToken || ""))}" />
+                        <input type="hidden" name="oe" value="${escapeHtml(t)}" />
+                        <textarea name="descripcion" rows="4" class="w-full rounded-xl border border-neutral-300 px-4 py-3 text-sm outline-none resize-none focus:border-brand-700 focus:ring-2 focus:ring-brand-600/15" required>${escapeHtml(d)}</textarea>
+                        <div class="flex justify-end gap-3">
+                          <a data-js-cancel-oe="${escapeHtml(t)}" href="detalle-proyecto.php?t=${encodeURIComponent(String(projectToken || ""))}&section=objetivos" class="rounded-xl border border-neutral-300 px-4 py-2 text-sm font-medium hover:bg-neutral-100">Cancelar</a>
+                          <button type="submit" class="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Guardar</button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                  <div class="mt-5 rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
+                    <div class="flex items-center justify-between gap-3">
+                      <div>
+                        <div class="text-sm font-semibold text-neutral-900">Objetivos específicos</div>
+                        <div class="mt-0.5 text-xs text-neutral-600">Cada objetivo específico pertenece a este objetivo estratégico.</div>
+                      </div>
+                    </div>
+                    <form class="mt-4" data-oesp-batch-form="${escapeHtml(t)}">
+                      <input type="hidden" name="t" value="${escapeHtml(String(projectToken || ""))}" />
+                      <input type="hidden" name="oe" value="${escapeHtml(t)}" />
+                      <div class="flex flex-col gap-3 sm:flex-row">
+                        <input type="text" name="descripcion" class="flex-1 rounded-xl border border-neutral-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-brand-700 focus:ring-2 focus:ring-brand-600/15" placeholder="Escribe un objetivo específico y presiona “Agregar”…" />
+                        <button type="button" data-oesp-batch-add="${escapeHtml(t)}" class="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700">+ Agregar</button>
+                        <button type="button" data-oesp-batch-save="${escapeHtml(t)}" class="inline-flex items-center justify-center rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50" disabled>Guardar</button>
+                      </div>
+                      <div class="mt-3 rounded-xl border border-neutral-200 bg-white p-3">
+                        <div class="flex items-center justify-between gap-3">
+                          <div class="text-xs font-semibold text-neutral-700">Pendientes</div>
+                          <div data-oesp-batch-count="${escapeHtml(t)}" class="text-xs font-semibold text-neutral-600">0</div>
+                        </div>
+                        <div data-oesp-batch-empty="${escapeHtml(t)}" class="mt-2 text-sm text-neutral-600">Agrega objetivos específicos a la lista.</div>
+                        <div data-oesp-batch-list="${escapeHtml(t)}" class="mt-2 space-y-2 hidden"></div>
+                      </div>
+                    </form>
+                    <div data-oesp-empty="${escapeHtml(t)}" class="block mt-4 text-sm text-neutral-600">Aún no hay objetivos específicos registrados.</div>
+                    <div data-oesp-list="${escapeHtml(t)}" class="hidden mt-4 space-y-2"></div>
+                  </div>
+                </div>
+              `.trim();
+              const card = wrapper.firstElementChild;
+              if (card && list) {
+                list.prepend(card);
+              }
+            }
+            pendingOe.length = 0;
+            renderPendingOe();
+            showInlineToast("Guardado", "Objetivos guardados correctamente.");
+          } catch (err) {
+            showInlineToast("Error", "No se pudo guardar.");
+          } finally {
+            oeSave.disabled = pendingOe.length === 0;
+            oeSave.textContent = "Guardar todo";
+          }
+        })();
+        return;
+      }
+
+      const oespAdd = target.closest("[data-oesp-batch-add]");
+      if (oespAdd) {
+        e.preventDefault();
+        const oeToken = String(oespAdd.getAttribute("data-oesp-batch-add") || "");
+        if (!oeToken) return;
+        const form = panel.querySelector(`[data-oesp-batch-form="${oeToken}"]`);
+        const input = form ? form.querySelector('input[name="descripcion"]') : null;
+        const txt = String(input && input.value ? input.value : "").trim();
+        if (txt.length < 5) {
+          showInlineToast("Error", "El objetivo específico debe tener al menos 5 caracteres.");
+          return;
+        }
+        const list = pendingOespByOe.get(oeToken) || [];
+        list.push(txt);
+        pendingOespByOe.set(oeToken, list);
+        if (input) {
+          input.value = "";
+          input.focus();
+        }
+        renderPendingOesp(oeToken);
+        return;
+      }
+
+      const oespRemove = target.closest("[data-oesp-batch-remove]");
+      if (oespRemove) {
+        e.preventDefault();
+        const raw = String(oespRemove.getAttribute("data-oesp-batch-remove") || "");
+        const [oeToken, idxRaw] = raw.split(":");
+        const idx = Number(idxRaw || "-1");
+        if (!oeToken) return;
+        const list = pendingOespByOe.get(oeToken) || [];
+        if (!Number.isFinite(idx) || idx < 0 || idx >= list.length) return;
+        list.splice(idx, 1);
+        pendingOespByOe.set(oeToken, list);
+        renderPendingOesp(oeToken);
+        return;
+      }
+
+      const oespSave = target.closest("[data-oesp-batch-save]");
+      if (oespSave) {
+        e.preventDefault();
+        const oeToken = String(oespSave.getAttribute("data-oesp-batch-save") || "");
+        if (!oeToken) return;
+        const form = panel.querySelector(`[data-oesp-batch-form="${oeToken}"]`);
+        const tokenEl = form ? form.querySelector('input[name="t"]') : null;
+        const token = String(tokenEl && tokenEl.value ? tokenEl.value : "");
+        const listPending = pendingOespByOe.get(oeToken) || [];
+        const items = listPending.slice();
+        if (!token || items.length === 0) return;
+        oespSave.disabled = true;
+        oespSave.textContent = "Guardando…";
+        (async () => {
+          try {
+            const fd = new FormData();
+            fd.set("action", "create_obj_esp_batch");
+            fd.set("t", token);
+            fd.set("oe", oeToken);
+            fd.set("items", JSON.stringify(items));
+            const res = await fetch("detalle-proyecto.php", {
+              method: "POST",
+              headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" },
+              body: fd,
+            });
+            const json = await res.json().catch(() => null);
+            if (!res.ok || !json || json.ok !== true) {
+              const msg = (json && json.error) ? String(json.error) : "No se pudo guardar.";
+              showInlineToast("Error", msg);
+              return;
+            }
+            const created = Array.isArray(json.created) ? json.created : [];
+            const listEl = panel.querySelector(`[data-oesp-list="${oeToken}"]`);
+            const emptyEl = panel.querySelector(`[data-oesp-empty="${oeToken}"]`);
+            const countEl = panel.querySelector(`[data-oe-count="${oeToken}"]`);
+            for (const c of created) {
+              if (!c || typeof c !== "object" || !c.token || !c.descripcion) continue;
+              const t = String(c.token);
+              const d = String(c.descripcion);
+              const rowWrap = document.createElement("div");
+              rowWrap.innerHTML = `
+                <div class="rounded-xl border border-neutral-200 bg-white px-4 py-3">
+                  <div data-oesp-row="${escapeHtml(t)}">
+                    <div data-oesp-view class="flex items-start justify-between gap-3">
+                      <div class="text-sm text-neutral-800">${escapeHtml(d)}</div>
+                      <div class="flex items-center gap-2">
+                        <a data-js-edit-oesp="${escapeHtml(t)}" href="detalle-proyecto.php?t=${encodeURIComponent(String(projectToken || ""))}&section=objetivos&oesp_edit=${encodeURIComponent(t)}" class="inline-flex items-center justify-center rounded-xl border border-neutral-200 bg-white p-2 text-brand-700 hover:bg-brand-50" aria-label="Editar objetivo específico" title="Editar">
+                          <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M11 4h-4a2 2 0 00-2 2v4m14-4l-9 9-4 1 1-4 9-9 3 3z" />
+                          </svg>
+                        </a>
+                        <form method="post" action="detalle-proyecto.php" onsubmit="return confirm('¿Eliminar este objetivo específico?');">
+                          <input type="hidden" name="action" value="delete_obj_esp" />
+                          <input type="hidden" name="t" value="${escapeHtml(String(projectToken || ""))}" />
+                          <input type="hidden" name="oe" value="${escapeHtml(oeToken)}" />
+                          <input type="hidden" name="oesp" value="${escapeHtml(t)}" />
+                          <button type="submit" class="inline-flex items-center justify-center rounded-xl bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700">Eliminar</button>
+                        </form>
+                      </div>
+                    </div>
+                    <div data-oesp-form class="hidden">
+                      <form class="flex flex-col gap-3 sm:flex-row sm:items-center" method="post" action="detalle-proyecto.php">
+                        <input type="hidden" name="action" value="update_obj_esp" />
+                        <input type="hidden" name="t" value="${escapeHtml(String(projectToken || ""))}" />
+                        <input type="hidden" name="oe" value="${escapeHtml(oeToken)}" />
+                        <input type="hidden" name="oesp" value="${escapeHtml(t)}" />
+                        <input type="text" name="descripcion" value="${escapeHtml(d)}" class="flex-1 rounded-xl border border-neutral-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-brand-700 focus:ring-2 focus:ring-brand-600/15" required />
+                        <div class="flex justify-end gap-2">
+                          <a data-js-cancel-oesp="${escapeHtml(t)}" href="detalle-proyecto.php?t=${encodeURIComponent(String(projectToken || ""))}&section=objetivos" class="rounded-xl border border-neutral-300 px-4 py-2 text-sm font-medium hover:bg-neutral-100">Cancelar</a>
+                          <button type="submit" class="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Guardar</button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              `.trim();
+              const row = rowWrap.firstElementChild;
+              if (row && listEl) listEl.prepend(row);
+            }
+            if (emptyEl) emptyEl.classList.add("hidden");
+            if (listEl) listEl.classList.remove("hidden");
+
+            const current = countEl ? countEl.textContent || "" : "";
+            const m = current.match(/(\d+)/);
+            const n = m ? Number(m[1]) : 0;
+            if (countEl) countEl.textContent = `${n + created.length} específicos`;
+
+            pendingOespByOe.set(oeToken, []);
+            renderPendingOesp(oeToken);
+            showInlineToast("Guardado", "Objetivos guardados correctamente.");
+          } catch (err) {
+            showInlineToast("Error", "No se pudo guardar.");
+          } finally {
+            oespSave.disabled = (pendingOespByOe.get(oeToken) || []).length === 0;
+            oespSave.textContent = "Guardar";
+          }
+        })();
+        return;
+      }
 
       const editOe = target.closest("[data-js-edit-oe]");
       if (editOe) {
@@ -914,6 +1279,8 @@
     if (oespEditParam) {
       openObjetivoEspecificoEdit(oespEditParam);
     }
+
+    renderPendingOe();
   }
 
   function initCadenaPanel() {

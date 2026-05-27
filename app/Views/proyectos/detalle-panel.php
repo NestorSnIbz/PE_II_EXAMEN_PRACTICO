@@ -256,31 +256,52 @@
       </div>
     <?php endif; ?>
 
-    <form class="mt-6 rounded-2xl border border-neutral-200 bg-white p-5" method="post" action="detalle-proyecto.php">
-      <input type="hidden" name="action" value="create_obj_est" />
-      <input type="hidden" name="t" value="<?php echo htmlspecialchars((string) $projectToken, ENT_QUOTES, 'UTF-8'); ?>" />
-
-      <div class="flex items-center justify-between gap-3">
-        <div>
-          <div class="text-sm font-semibold text-neutral-900">Nuevo objetivo estratégico</div>
-          <div class="mt-0.5 text-xs text-neutral-600">Define el objetivo estratégico del proyecto.</div>
+    <div class="mt-6 rounded-2xl border border-neutral-200 bg-white p-5">
+      <form data-oe-batch-form="1">
+        <input type="hidden" name="t" value="<?php echo htmlspecialchars((string) $projectToken, ENT_QUOTES, 'UTF-8'); ?>" />
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <div class="text-sm font-semibold text-neutral-900">Objetivos estratégicos</div>
+            <div class="mt-0.5 text-xs text-neutral-600">Agrega varios y guarda al final.</div>
+          </div>
+          <button
+            type="button"
+            data-oe-batch-save="1"
+            class="inline-flex items-center justify-center rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
+            disabled
+          >
+            Guardar todo
+          </button>
         </div>
-      </div>
 
-      <textarea
-        name="descripcion"
-        rows="4"
-        class="mt-4 w-full rounded-xl border border-neutral-300 px-4 py-3 text-sm outline-none resize-none focus:border-brand-700 focus:ring-2 focus:ring-brand-600/15"
-        placeholder="Escribe el objetivo estratégico..."
-        required
-      ></textarea>
+        <textarea
+          name="descripcion"
+          rows="3"
+          class="mt-4 w-full rounded-xl border border-neutral-300 px-4 py-3 text-sm outline-none resize-none focus:border-brand-700 focus:ring-2 focus:ring-brand-600/15"
+          placeholder="Escribe un objetivo estratégico y presiona “Agregar a lista”…"
+        ></textarea>
 
-      <div class="mt-4 flex justify-end">
-        <button type="submit" class="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
-          + Agregar
-        </button>
+        <div class="mt-3 flex flex-wrap items-center justify-between gap-3">
+          <div class="text-xs text-neutral-500">Mínimo 5 caracteres por objetivo.</div>
+          <button
+            type="button"
+            data-oe-batch-add="1"
+            class="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+          >
+            + Agregar a lista
+          </button>
+        </div>
+      </form>
+
+      <div class="mt-4 rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
+        <div class="flex items-center justify-between gap-3">
+          <div class="text-sm font-semibold text-neutral-900">Pendientes</div>
+          <div data-oe-batch-count="1" class="text-xs font-semibold text-neutral-600">0</div>
+        </div>
+        <div data-oe-batch-empty="1" class="mt-3 text-sm text-neutral-600">Agrega objetivos a la lista para guardarlos.</div>
+        <div data-oe-batch-list="1" class="mt-3 space-y-2 hidden"></div>
       </div>
-    </form>
+    </div>
 
     <div class="mt-6 grid gap-4" data-oe-list="1">
       <?php if (empty($objetivosEstrategicos)) : ?>
@@ -369,20 +390,31 @@
                 </div>
               </div>
 
-              <form class="mt-4 flex flex-col gap-3 sm:flex-row" method="post" action="detalle-proyecto.php">
-                <input type="hidden" name="action" value="create_obj_esp" />
+              <form class="mt-4" data-oesp-batch-form="<?php echo htmlspecialchars($oeToken, ENT_QUOTES, 'UTF-8'); ?>">
                 <input type="hidden" name="t" value="<?php echo htmlspecialchars((string) $projectToken, ENT_QUOTES, 'UTF-8'); ?>" />
                 <input type="hidden" name="oe" value="<?php echo htmlspecialchars($oeToken, ENT_QUOTES, 'UTF-8'); ?>" />
-                <input
-                  type="text"
-                  name="descripcion"
-                  class="flex-1 rounded-xl border border-neutral-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-brand-700 focus:ring-2 focus:ring-brand-600/15"
-                  placeholder="Escribe un objetivo específico..."
-                  required
-                />
-                <button type="submit" class="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700">
-                  + Agregar
-                </button>
+                <div class="flex flex-col gap-3 sm:flex-row">
+                  <input
+                    type="text"
+                    name="descripcion"
+                    class="flex-1 rounded-xl border border-neutral-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-brand-700 focus:ring-2 focus:ring-brand-600/15"
+                    placeholder="Escribe un objetivo específico y presiona “Agregar”…"
+                  />
+                  <button type="button" data-oesp-batch-add="<?php echo htmlspecialchars($oeToken, ENT_QUOTES, 'UTF-8'); ?>" class="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700">
+                    + Agregar
+                  </button>
+                  <button type="button" data-oesp-batch-save="<?php echo htmlspecialchars($oeToken, ENT_QUOTES, 'UTF-8'); ?>" class="inline-flex items-center justify-center rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50" disabled>
+                    Guardar
+                  </button>
+                </div>
+                <div class="mt-3 rounded-xl border border-neutral-200 bg-white p-3">
+                  <div class="flex items-center justify-between gap-3">
+                    <div class="text-xs font-semibold text-neutral-700">Pendientes</div>
+                    <div data-oesp-batch-count="<?php echo htmlspecialchars($oeToken, ENT_QUOTES, 'UTF-8'); ?>" class="text-xs font-semibold text-neutral-600">0</div>
+                  </div>
+                  <div data-oesp-batch-empty="<?php echo htmlspecialchars($oeToken, ENT_QUOTES, 'UTF-8'); ?>" class="mt-2 text-sm text-neutral-600">Agrega objetivos específicos a la lista.</div>
+                  <div data-oesp-batch-list="<?php echo htmlspecialchars($oeToken, ENT_QUOTES, 'UTF-8'); ?>" class="mt-2 space-y-2 hidden"></div>
+                </div>
               </form>
 
               <div data-oesp-empty="<?php echo htmlspecialchars($oeToken, ENT_QUOTES, 'UTF-8'); ?>" class="<?php echo empty($especificos) ? 'block' : 'hidden'; ?> mt-4 text-sm text-neutral-600">

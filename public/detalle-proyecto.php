@@ -49,6 +49,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         case 'create_obj_est':
             $controller->createObjetivoEstrategico();
             break;
+        case 'create_obj_est_batch':
+            $controller->createObjetivoEstrategicoBatch();
+            break;
         case 'update_obj_est':
             $controller->updateObjetivoEstrategico();
             break;
@@ -57,6 +60,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             break;
         case 'create_obj_esp':
             $controller->createObjetivoEspecifico();
+            break;
+        case 'create_obj_esp_batch':
+            $controller->createObjetivoEspecificoBatch();
             break;
         case 'update_obj_esp':
             $controller->updateObjetivoEspecifico();

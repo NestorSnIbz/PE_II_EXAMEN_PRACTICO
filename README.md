@@ -16,6 +16,6 @@ En el apartado de objetivos, anteriomente cuando se agregaba un objetivo estrate
 
 ![Imagen](imagenes/captura-2.png)
 
-En el apartado dashboard se integro graficos estadisticos
+En el apartado dashboard se integro graficos estadisticos, estados de planes y objetivos estrategicos vs objetivos especificos
 
 ![Imagen](imagenes/captura-3.png)

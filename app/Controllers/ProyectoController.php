@@ -1180,6 +1180,71 @@ final class ProyectoController
         $this->redirect('/detalle-proyecto.php?t=' . urlencode($token) . '&section=objetivos');
     }
 
+    public function createObjetivoEstrategicoBatch(): void
+    {
+        $authController = new AuthController();
+        $authUser = $authController->requireAuth();
+
+        $token = trim((string) ($_POST['t'] ?? ''));
+        $idProyecto = $this->projectIdFromToken($token);
+        $itemsRaw = (string) ($_POST['items'] ?? '');
+
+        if ($idProyecto <= 0) {
+            $this->jsonError('Proyecto inválido.', 400);
+        }
+
+        $decoded = json_decode($itemsRaw, true);
+        if (!is_array($decoded)) {
+            $this->jsonError('Datos inválidos.', 400);
+        }
+
+        $items = [];
+        foreach ($decoded as $v) {
+            $txt = trim((string) $v);
+            if ($txt === '') {
+                continue;
+            }
+            $items[] = $txt;
+        }
+
+        $items = array_values(array_unique($items));
+        if (empty($items)) {
+            $this->jsonError('No hay objetivos para guardar.', 400);
+        }
+
+        $max = 25;
+        if (count($items) > $max) {
+            $items = array_slice($items, 0, $max);
+        }
+
+        foreach ($items as $txt) {
+            if (mb_strlen($txt, 'UTF-8') < 5) {
+                $this->jsonError('Cada objetivo estratégico debe tener al menos 5 caracteres.', 400);
+            }
+        }
+
+        $supabase = new SupabaseClient();
+        $proyecto = $this->findAccessibleProyecto($supabase, $idProyecto, (int) $authUser['id_persona']);
+        if ($proyecto === null) {
+            $this->jsonError('No tienes acceso a este proyecto.', 403);
+        }
+
+        $created = [];
+        foreach ($items as $txt) {
+            $idObjetivoEst = ObjetivoEstrategico::create($supabase, $idProyecto, $txt);
+            $created[] = [
+                'id_objetivo_est' => (int) $idObjetivoEst,
+                'token' => $this->issueObjetivoEstrategicoToken((int) $idObjetivoEst),
+                'descripcion' => $txt,
+                'especificos_count' => 0,
+            ];
+        }
+
+        $this->jsonOk('Objetivos estratégicos registrados correctamente.', [
+            'created' => $created,
+        ]);
+    }
+
     public function updateObjetivoEstrategico(): void
     {
         $authController = new AuthController();
@@ -1361,6 +1426,78 @@ final class ProyectoController
         }
         Session::flash('success', 'Objetivo específico registrado correctamente.');
         $this->redirect('/detalle-proyecto.php?t=' . urlencode($token) . '&section=objetivos');
+    }
+
+    public function createObjetivoEspecificoBatch(): void
+    {
+        $authController = new AuthController();
+        $authUser = $authController->requireAuth();
+
+        $token = trim((string) ($_POST['t'] ?? ''));
+        $idProyecto = $this->projectIdFromToken($token);
+        $oeToken = trim((string) ($_POST['oe'] ?? ''));
+        $itemsRaw = (string) ($_POST['items'] ?? '');
+
+        $idObjetivoEst = $this->objetivoEstrategicoIdFromToken($oeToken);
+
+        if ($idProyecto <= 0 || $idObjetivoEst <= 0) {
+            $this->jsonError('Objetivo inválido.', 400);
+        }
+
+        $decoded = json_decode($itemsRaw, true);
+        if (!is_array($decoded)) {
+            $this->jsonError('Datos inválidos.', 400);
+        }
+
+        $items = [];
+        foreach ($decoded as $v) {
+            $txt = trim((string) $v);
+            if ($txt === '') {
+                continue;
+            }
+            $items[] = $txt;
+        }
+
+        $items = array_values(array_unique($items));
+        if (empty($items)) {
+            $this->jsonError('No hay objetivos para guardar.', 400);
+        }
+
+        $max = 50;
+        if (count($items) > $max) {
+            $items = array_slice($items, 0, $max);
+        }
+
+        foreach ($items as $txt) {
+            if (mb_strlen($txt, 'UTF-8') < 5) {
+                $this->jsonError('Cada objetivo específico debe tener al menos 5 caracteres.', 400);
+            }
+        }
+
+        $supabase = new SupabaseClient();
+        $proyecto = $this->findAccessibleProyecto($supabase, $idProyecto, (int) $authUser['id_persona']);
+        if ($proyecto === null) {
+            $this->jsonError('No tienes acceso a este proyecto.', 403);
+        }
+
+        if (!ObjetivoEstrategico::existsInProyecto($supabase, $idObjetivoEst, $idProyecto)) {
+            $this->jsonError('No tienes acceso a este objetivo.', 403);
+        }
+
+        $created = [];
+        foreach ($items as $txt) {
+            $idObjetivoEsp = ObjetivoEspecifico::create($supabase, $idObjetivoEst, $txt);
+            $created[] = [
+                'id_objetivo_esp' => (int) $idObjetivoEsp,
+                'token' => $this->issueObjetivoEspecificoToken((int) $idObjetivoEsp),
+                'descripcion' => $txt,
+                'oe_token' => $oeToken,
+            ];
+        }
+
+        $this->jsonOk('Objetivos específicos registrados correctamente.', [
+            'created' => $created,
+        ]);
     }
 
     public function updateObjetivoEspecifico(): void
