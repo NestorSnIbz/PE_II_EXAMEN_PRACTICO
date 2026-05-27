@@ -9,3 +9,5 @@
 # Mejora Realizada
 
 En el overview se adjunto los objetos estrategicos y especificos de acuerdo a los objetivos que se plantean en el apartado de objetivos
+
+![Imagen](imagenes/captura-1.png)
