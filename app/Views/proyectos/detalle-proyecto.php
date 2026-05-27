@@ -259,56 +259,54 @@
               <?php if (empty($objetivosEstrategicos)) : ?>
                 <div class="mt-3 text-sm text-neutral-600">Aún no hay objetivos registrados.</div>
               <?php else : ?>
-                <div class="mt-4 overflow-x-auto rounded-xl border border-neutral-200 bg-white">
-                  <table class="min-w-full text-left text-sm">
-                    <thead class="bg-neutral-50 text-xs font-semibold text-neutral-600">
-                      <tr>
-                        <th scope="col" class="w-14 px-4 py-3 text-center">#</th>
-                        <th scope="col" class="px-4 py-3">Objetivo estratégico</th>
-                        <th scope="col" class="px-4 py-3">Objetivos específicos</th>
-                      </tr>
-                    </thead>
-                    <tbody class="divide-y divide-neutral-200">
-                      <?php foreach ($objetivosEstrategicos as $i => $obj) : ?>
-                        <?php
-                          $idObjEst = (int) ($obj['id_objetivo_est'] ?? 0);
-                          $especificos = $objetivosEspecificosByEstrategico[$idObjEst] ?? [];
-                        ?>
-                        <tr class="align-top">
-                          <td class="px-4 py-3 text-center text-neutral-500"><?php echo (int) $i + 1; ?></td>
-                          <td class="px-4 py-3 text-neutral-800 leading-relaxed">
-                            <?php echo nl2br(htmlspecialchars((string) ($obj['descripcion'] ?? ''), ENT_QUOTES, 'UTF-8')); ?>
-                          </td>
-                          <td class="px-4 py-3">
-                            <?php if (empty($especificos)) : ?>
-                              <div class="text-sm text-neutral-500">Sin objetivos específicos</div>
-                            <?php else : ?>
-                              <div class="overflow-hidden rounded-lg border border-neutral-200">
-                                <table class="min-w-full text-left text-sm">
-                                  <thead class="bg-neutral-50 text-xs font-semibold text-neutral-600">
-                                    <tr>
-                                      <th scope="col" class="w-12 px-3 py-2 text-center">#</th>
-                                      <th scope="col" class="px-3 py-2">Descripción</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody class="divide-y divide-neutral-200">
-                                    <?php foreach ($especificos as $j => $esp) : ?>
-                                      <tr>
-                                        <td class="px-3 py-2 text-center text-neutral-500"><?php echo (int) $j + 1; ?></td>
-                                        <td class="px-3 py-2 text-neutral-800">
-                                          <?php echo htmlspecialchars((string) ($esp['descripcion'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>
-                                        </td>
-                                      </tr>
-                                    <?php endforeach; ?>
-                                  </tbody>
-                                </table>
-                              </div>
-                            <?php endif; ?>
-                          </td>
-                        </tr>
-                      <?php endforeach; ?>
-                    </tbody>
-                  </table>
+                <div class="mt-4 space-y-3">
+                  <?php foreach ($objetivosEstrategicos as $i => $obj) : ?>
+                    <?php
+                      $idObjEst = (int) ($obj['id_objetivo_est'] ?? 0);
+                      $especificos = $objetivosEspecificosByEstrategico[$idObjEst] ?? [];
+                      $countEspecificos = is_array($especificos) ? count($especificos) : 0;
+                    ?>
+                    <details class="group rounded-xl border border-neutral-200 bg-white">
+                      <summary class="[&::-webkit-details-marker]:hidden cursor-pointer select-none px-4 py-3">
+                        <div class="flex items-start justify-between gap-3">
+                          <div class="min-w-0 flex-1">
+                            <div class="text-xs font-semibold text-neutral-500">Objetivo estratégico <?php echo (int) $i + 1; ?></div>
+                            <div class="mt-1 text-sm text-neutral-900 leading-relaxed">
+                              <?php echo nl2br(htmlspecialchars((string) ($obj['descripcion'] ?? ''), ENT_QUOTES, 'UTF-8')); ?>
+                            </div>
+                          </div>
+                          <div class="shrink-0 flex items-center gap-2">
+                            <span class="inline-flex items-center rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-800">
+                              <?php echo (int) $countEspecificos; ?> específicos
+                            </span>
+                            <svg viewBox="0 0 20 20" fill="currentColor" class="h-5 w-5 text-neutral-500 transition group-open:rotate-180">
+                              <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.94a.75.75 0 111.08 1.04l-4.24 4.5a.75.75 0 01-1.08 0l-4.24-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                            </svg>
+                          </div>
+                        </div>
+                      </summary>
+                      <div class="border-t border-neutral-200 bg-neutral-50 px-4 py-3">
+                        <?php if (empty($especificos)) : ?>
+                          <div class="text-sm text-neutral-600">Sin objetivos específicos.</div>
+                        <?php else : ?>
+                          <ol class="space-y-2">
+                            <?php foreach ($especificos as $j => $esp) : ?>
+                              <li class="rounded-lg border border-neutral-200 bg-white px-3 py-2">
+                                <div class="flex items-start gap-3">
+                                  <div class="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-md bg-neutral-100 text-xs font-semibold text-neutral-600">
+                                    <?php echo (int) $j + 1; ?>
+                                  </div>
+                                  <div class="flex-1 text-sm text-neutral-800 leading-relaxed">
+                                    <?php echo htmlspecialchars((string) ($esp['descripcion'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>
+                                  </div>
+                                </div>
+                              </li>
+                            <?php endforeach; ?>
+                          </ol>
+                        <?php endif; ?>
+                      </div>
+                    </details>
+                  <?php endforeach; ?>
                 </div>
               <?php endif; ?>
             </div>

@@ -4,7 +4,7 @@
 # Fecha: 27/05/2026
 
 
-# Repositorio: https://github.com/NestorSnIbz/PE_II_EXAMEN_PRACTICO
+https://github.com/NestorSnIbz/PE_II_EXAMEN_PRACTICO
 
 # Mejora Realizada
 
